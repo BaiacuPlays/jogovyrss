@@ -120,16 +120,21 @@ function startMusic(){
   unlockAudio();
 
   if(!musicStarted){
-    music.play().then(()=>{
-      musicStarted = true;
-    }).catch(()=>{});
+    music.play().then(()=>musicStarted=true).catch(()=>{});
   }
 }
 
-// ===== IMAGENS =====
-const bg = new Image();
-bg.src = "fundo.jpg";
+// ===== BACKGROUNDS (SEQUÊNCIA) =====
+const backgrounds = [
+  "fundo.jpg",
+  "fundo2.jpeg"
+];
 
+let bgIndex = 0;
+let bgX = 0;
+const bgSpeed = 1;
+
+// ===== IMAGENS =====
 const dinoImg = new Image();
 dinoImg.src = "dino.png";
 
@@ -189,6 +194,7 @@ function update(){
 
   score += 0.1;
 
+  // física
   dino.dy += 0.7;
   dino.y += dino.dy;
 
@@ -202,6 +208,7 @@ function update(){
     dino.y = groundY - dino.h;
   }
 
+  // inimigos
   obstacles.forEach(o => o.x -= 7);
   obstacles = obstacles.filter(o => o.x > -100);
 
@@ -215,6 +222,14 @@ function update(){
       gameOver();
     }
   });
+
+  // ===== BACKGROUND LOOP SEQUENCIAL =====
+  bgX -= bgSpeed;
+
+  if(bgX <= -W){
+    bgX = 0;
+    bgIndex = (bgIndex + 1) % backgrounds.length;
+  }
 }
 
 // ===== DRAW =====
@@ -226,12 +241,19 @@ function draw(){
     (canvas.height - H*scale)/2
   );
 
-  // fundo
-  if(bg.complete){
-    ctx.drawImage(bg,0,0,W,H);
-  } else {
-    ctx.fillStyle="#87CEEB";
-    ctx.fillRect(0,0,W,H);
+  // ===== BACKGROUND =====
+  const img = new Image();
+  img.src = backgrounds[bgIndex];
+
+  const nextImg = new Image();
+  nextImg.src = backgrounds[(bgIndex + 1) % backgrounds.length];
+
+  if(img.complete){
+    ctx.drawImage(img, bgX, 0, W, H);
+  }
+
+  if(nextImg.complete){
+    ctx.drawImage(nextImg, bgX + W, 0, W, H);
   }
 
   // chão areia
