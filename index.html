@@ -15,7 +15,6 @@ canvas {
   display: block;
 }
 
-/* GAME OVER */
 #gameOverScreen {
   position: fixed;
   inset: 0;
@@ -59,13 +58,12 @@ canvas {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// ===== MUNDO FIXO =====
+// ===== MUNDO =====
 const W = 800;
 const H = 400;
 
 let scale = 1;
 
-// câmera centralizada
 function resize(){
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -77,6 +75,56 @@ function resize(){
 }
 window.addEventListener("resize", resize);
 resize();
+
+// ===== AUDIO =====
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function unlockAudio(){
+  if(audioCtx.state === "suspended"){
+    audioCtx.resume();
+  }
+}
+
+function playBeep(freq, duration=0.1, type="square", volume=0.1){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = type;
+  osc.frequency.value = freq;
+
+  gain.gain.value = volume;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function soundJump(){
+  playBeep(500,0.08,"square",0.08);
+}
+
+function soundHit(){
+  playBeep(120,0.25,"sawtooth",0.2);
+}
+
+// ===== MÚSICA =====
+const music = new Audio("music.mp3");
+music.loop = true;
+music.volume = 0.25;
+
+let musicStarted = false;
+
+function startMusic(){
+  unlockAudio();
+
+  if(!musicStarted){
+    music.play().then(()=>{
+      musicStarted = true;
+    }).catch(()=>{});
+  }
+}
 
 // ===== IMAGENS =====
 const bg = new Image();
@@ -112,11 +160,14 @@ let obstacles = [];
 
 // ===== CONTROLES =====
 document.addEventListener("keydown",(e)=>{
+  startMusic();
+
   if(!running) return;
 
   if(e.code==="Space" && !dino.jumping && !dino.crouching){
     dino.dy = -14;
     dino.jumping = true;
+    soundJump();
   }
 
   if(e.key.toLowerCase()==="s" && !dino.jumping){
@@ -169,7 +220,6 @@ function update(){
 // ===== DRAW =====
 function draw(){
 
-  // câmera
   ctx.setTransform(
     scale,0,0,scale,
     (canvas.width - W*scale)/2,
@@ -184,17 +234,17 @@ function draw(){
     ctx.fillRect(0,0,W,H);
   }
 
-  // ===== CHÃO DE AREIA =====
-  ctx.fillStyle = "#d9b46b";
-  ctx.fillRect(0, groundY, W, H-groundY);
+  // chão areia
+  ctx.fillStyle="#d9b46b";
+  ctx.fillRect(0,groundY,W,H-groundY);
 
-  ctx.fillStyle = "#caa25a";
-  ctx.fillRect(0, groundY, W, 8);
+  ctx.fillStyle="#caa25a";
+  ctx.fillRect(0,groundY,W,8);
 
-  ctx.fillStyle = "rgba(0,0,0,0.08)";
+  ctx.fillStyle="rgba(0,0,0,0.08)";
   for(let i=0;i<60;i++){
-    const x = (i*80)%W;
-    const y = groundY + (i%3)*6;
+    const x=(i*80)%W;
+    const y=groundY+(i%3)*6;
     ctx.fillRect(x,y,3,2);
   }
 
@@ -245,6 +295,12 @@ setInterval(()=>{
 // ===== GAME OVER =====
 function gameOver(){
   running=false;
+
+  music.pause();
+  music.currentTime=0;
+
+  soundHit();
+
   document.getElementById("gameOverScreen").style.display="flex";
 }
 
@@ -253,6 +309,8 @@ function resetGame(){
   obstacles=[];
   score=0;
   running=true;
+  musicStarted=false;
+
   document.getElementById("gameOverScreen").style.display="none";
 }
 
